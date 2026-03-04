@@ -28,7 +28,7 @@ In this world, profit isn't the priority—**Goodwill** is the ultimate currency
 
 ## 🚀 Quick Start
 
-1.  **Download** the `itec_ethics_game.html` file.
+1.  **Download** the `index.html` file.
 2.  **Open** the file in Chrome, Firefox, or Safari.
 3.  **Compete** with your classmates to see who can build the most Goodwill!
 
