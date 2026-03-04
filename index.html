@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE MORAL MATRIX: ITEC EDITION</title>
+    <title>THE MORAL MATRIX</title>
     <style>
-        /* 70s RETRO AESTHETIC */
         :root {
             --mustard: #E1AD01;
             --burnt-orange: #CC5500;
@@ -25,7 +24,6 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            overflow-x: hidden;
         }
 
         #game-container {
@@ -41,37 +39,36 @@
         }
 
         h1 {
-            font-size: 3.5rem;
+            font-size: 3.2rem;
             color: var(--burnt-orange);
             text-transform: uppercase;
-            margin-top: 0;
+            margin: 0;
             text-shadow: 3px 3px 0 var(--mustard);
-            letter-spacing: -2px;
         }
 
         .goodwill-meter {
             background: var(--brown);
             color: var(--mustard);
-            padding: 15px;
-            font-size: 2rem;
+            padding: 10px 20px;
+            font-size: 1.8rem;
             display: inline-block;
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin: 15px 0;
             border: 4px dashed var(--avocado);
         }
 
         .screen { display: none; }
-        .active { display: block; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .active { display: block; animation: popIn 0.4s ease-out; }
 
         @keyframes popIn {
-            0% { transform: scale(0.5); opacity: 0; }
+            0% { transform: scale(0.8); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
 
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 15px;
             margin-top: 20px;
         }
 
@@ -79,50 +76,30 @@
             background-color: var(--avocado);
             color: var(--cream);
             border: none;
-            padding: 20px;
-            font-size: 1.2rem;
+            padding: 18px;
+            font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
-            border-bottom: 8px solid #3d5c02;
-            transition: all 0.1s;
+            border-bottom: 6px solid #3d5c02;
+            transition: 0.1s;
             text-transform: uppercase;
         }
 
-        button:hover {
-            transform: translateY(-5px);
-            background-color: var(--mustard);
-            border-bottom-color: #b08d01;
-        }
+        button:hover { background-color: var(--mustard); border-bottom-color: #b08d01; }
+        button:active { transform: translateY(3px); border-bottom-width: 2px; }
 
-        button:active {
-            transform: translateY(4px);
-            border-bottom-width: 2px;
-        }
-
-        .choice-btn {
-            background-color: var(--burnt-orange);
-            border-bottom: 8px solid #913d00;
-            margin-bottom: 10px;
-            width: 100%;
-        }
-
-        .result-text {
-            font-size: 1.5rem;
+        .chance-card {
+            background: white;
+            border: 8px solid var(--burnt-orange);
+            padding: 20px;
             margin: 20px 0;
-            line-height: 1.4;
+            transform: rotate(-2deg);
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.2);
         }
 
-        .field-icon {
-            font-size: 3rem;
-            display: block;
-            margin-bottom: 10px;
-        }
+        #chance-title { color: var(--burnt-orange); font-size: 1.5rem; margin-bottom: 5px; }
 
-        #feedback {
-            font-style: italic;
-            color: var(--burnt-orange);
-            margin-top: 10px;
-        }
+        .field-icon { font-size: 2.5rem; display: block; }
     </style>
 </head>
 <body>
@@ -150,22 +127,36 @@
             </div>
     </div>
 
+    <div id="chance-screen" class="screen">
+        <div class="chance-card">
+            <h3 id="chance-title">CHANCE CARD!</h3>
+            <p id="chance-text" style="font-size: 1.2rem;"></p>
+            <p id="chance-impact" style="font-weight: bold; color: var(--avocado);"></p>
+        </div>
+        <button onclick="showFinalResult()">SEE TOTAL IMPACT</button>
+    </div>
+
     <div id="result-screen" class="screen">
-        <h2 id="outcome-title">CONSEQUENCE!</h2>
-        <p id="outcome-text" class="result-text"></p>
-        <div id="feedback"></div>
-        <br>
+        <h2 id="outcome-title">ROUND OVER!</h2>
+        <p id="outcome-text" style="font-size: 1.4rem;"></p>
         <button onclick="resetGame()">PLAY ANOTHER ROUND?</button>
     </div>
 </div>
 
 <script>
     let score = 0;
-    const scoreEl = document.getElementById('score');
+    let roundLog = "";
 
-    const dilemmas = {
+    const chanceCards = [
+        { text: "Server Outage! You worked 48 hours straight to fix it manually.", impact: 15, msg: "GROOVY DEV: +15 Goodwill for dedication." },
+        { text: "Database Leak! A junior dev pushed an API key to GitHub.", impact: -25, msg: "TOTAL BUMMER: -25 Goodwill for the security breach." },
+        { text: "Viral Open Source! Your side project goes viral on Reddit.", impact: 30, msg: "OUTTA SIGHT: +30 Goodwill for community spirit." },
+        { text: "StackOverflow is Down! You have no idea how to code anymore.", impact: -10, msg: "BUMMER: -10 Goodwill for lost productivity." }
+    ];
+
+     const dilemmas = {
         'Healthcare': {
-            bonus: 50,
+            bonus: 60,
             bonusMsg: "PUBLIC SERVICE BONUS! Starting with +50 Goodwill.",
             text: "Your diagnostic AI identifies a rare disease, but the patient's insurance won't cover the life-saving treatment. Do you 'tweak' the AI logs to suggest a covered (but less accurate) diagnosis to get them the meds?",
             choices: [
@@ -183,7 +174,7 @@
             ]
         },
         'Government': {
-            bonus: 60,
+            bonus: 50,
             bonusMsg: "CIVIC DUTY! Starting with +60 Goodwill.",
             text: "The city wants to implement facial recognition in low-income neighborhoods to 'reduce crime,' but the algorithm has a 15% false-positive rate for minorities.",
             choices: [
@@ -202,9 +193,43 @@
         }
     };
 
-    function updateScore(points) {
-        score += points;
-        scoreEl.innerText = score;
+
+    function startGame(field) {
+        const d = dilemmas[field];
+        score = d.bonus;
+        document.getElementById('score').innerText = score;
+        document.getElementById('field-title').innerText = field.toUpperCase();
+        document.getElementById('dilemma-text').innerText = d.text;
+        
+        const container = document.getElementById('choices-container');
+        container.innerHTML = '';
+        d.choices.forEach(c => {
+            const b = document.createElement('button');
+            b.style.width = "100%"; b.style.marginBottom = "10px";
+            b.innerText = c.t;
+            b.onclick = () => handleChoice(c);
+            container.appendChild(b);
+        });
+        showScreen('dilemma-screen');
+    }
+
+    function handleChoice(choice) {
+        updateScore(choice.impact);
+        roundLog = choice.m;
+        document.getElementById('score').innerText = score;
+        
+        // Trigger Chance Card
+        const card = chanceCards[Math.floor(Math.random() * chanceCards.length)];
+        updateScore(card.impact);
+        document.getElementById('chance-text').innerText = card.text;
+        document.getElementById('chance-impact').innerText = card.msg;
+        showScreen('chance-screen');
+    }
+
+    function showFinalResult() {
+        document.getElementById('score').innerText = score;
+        document.getElementById('outcome-text').innerText = roundLog + " Final Goodwill score: " + score;
+        showScreen('result-screen');
     }
 
     function showScreen(id) {
@@ -212,40 +237,10 @@
         document.getElementById(id).classList.add('active');
     }
 
-    function startGame(field) {
-        const data = dilemmas[field];
-        score = 0; // Reset for new turn
-        updateScore(data.bonus);
-        
-        document.getElementById('field-title').innerText = field.toUpperCase() + " SECTOR";
-        document.getElementById('reward-announcement').innerText = data.bonusMsg;
-        document.getElementById('dilemma-text').innerText = data.text;
-        
-        const container = document.getElementById('choices-container');
-        container.innerHTML = '';
-        
-        data.choices.forEach(c => {
-            const btn = document.createElement('button');
-            btn.className = 'choice-btn';
-            btn.innerText = c.text;
-            btn.onclick = () => showResult(c);
-            container.appendChild(btn);
-        });
-
-        showScreen('dilemma-screen');
-    }
-
-    function showResult(choice) {
-        updateScore(choice.impact);
-        document.getElementById('outcome-text').innerText = choice.msg;
-        document.getElementById('feedback').innerText = choice.impact > 0 ? "STAY GROOVY!" : "THAT'S BOGUS, MAN!";
-        showScreen('result-screen');
-    }
-
-    function resetGame() {
-        showScreen('setup-screen');
+    function updateScore(points) {
+        score += points;
+        scoreEl.innerText = score;
     }
 </script>
-
 </body>
 </html>
