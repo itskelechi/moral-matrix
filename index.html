@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE MORAL MATRIX: ITEC EDITION</title>
+    <style>
+        /* 70s RETRO AESTHETIC */
+        :root {
+            --mustard: #E1AD01;
+            --burnt-orange: #CC5500;
+            --avocado: #568203;
+            --cream: #F5E6BE;
+            --brown: #3E2723;
+        }
+
+        body {
+            background-color: var(--brown);
+            background-image: radial-gradient(var(--burnt-orange) 1px, transparent 0);
+            background-size: 40px 40px;
+            font-family: 'Arial Black', Gadget, sans-serif;
+            color: var(--brown);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        #game-container {
+            background-color: var(--cream);
+            width: 90%;
+            max-width: 800px;
+            border: 15px solid var(--mustard);
+            border-radius: 50px;
+            padding: 40px;
+            box-shadow: 20px 20px 0px var(--burnt-orange);
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            color: var(--burnt-orange);
+            text-transform: uppercase;
+            margin-top: 0;
+            text-shadow: 3px 3px 0 var(--mustard);
+            letter-spacing: -2px;
+        }
+
+        .goodwill-meter {
+            background: var(--brown);
+            color: var(--mustard);
+            padding: 15px;
+            font-size: 2rem;
+            display: inline-block;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 4px dashed var(--avocado);
+        }
+
+        .screen { display: none; }
+        .active { display: block; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: var(--avocado);
+            color: var(--cream);
+            border: none;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 8px solid #3d5c02;
+            transition: all 0.1s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            transform: translateY(-5px);
+            background-color: var(--mustard);
+            border-bottom-color: #b08d01;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            border-bottom-width: 2px;
+        }
+
+        .choice-btn {
+            background-color: var(--burnt-orange);
+            border-bottom: 8px solid #913d00;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        .result-text {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            line-height: 1.4;
+        }
+
+        .field-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        #feedback {
+            font-style: italic;
+            color: var(--burnt-orange);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>Moral Matrix</h1>
+    <div class="goodwill-meter">GOODWILL: <span id="score">0</span></div>
+
+    <div id="setup-screen" class="screen active">
+        <h2>PICK YOUR SECTOR, CONTESTANT!</h2>
+        <p>Where will you make your mark in ITEC?</p>
+        <div class="grid">
+            <button onclick="startGame('Healthcare')"><span class="field-icon">🏥</span>Healthcare</button>
+            <button onclick="startGame('Corporation')"><span class="field-icon">🏢</span>Corporation</button>
+            <button onclick="startGame('Government')"><span class="field-icon">🏛️</span>Government</button>
+            <button onclick="startGame('Startup')"><span class="field-icon">🚀</span>Startup</button>
+        </div>
+    </div>
+
+    <div id="dilemma-screen" class="screen">
+        <h2 id="field-title">FIELD NAME</h2>
+        <div id="reward-announcement" style="color: var(--avocado); margin-bottom: 15px;"></div>
+        <p id="dilemma-text" class="result-text">Dilemma text goes here...</p>
+        <div id="choices-container">
+            </div>
+    </div>
+
+    <div id="result-screen" class="screen">
+        <h2 id="outcome-title">CONSEQUENCE!</h2>
+        <p id="outcome-text" class="result-text"></p>
+        <div id="feedback"></div>
+        <br>
+        <button onclick="resetGame()">PLAY ANOTHER ROUND?</button>
+    </div>
+</div>
+
+<script>
+    let score = 0;
+    const scoreEl = document.getElementById('score');
+
+    const dilemmas = {
+        'Healthcare': {
+            bonus: 50,
+            bonusMsg: "PUBLIC SERVICE BONUS! Starting with +50 Goodwill.",
+            text: "Your diagnostic AI identifies a rare disease, but the patient's insurance won't cover the life-saving treatment. Do you 'tweak' the AI logs to suggest a covered (but less accurate) diagnosis to get them the meds?",
+            choices: [
+                { text: "Hack the logs for the patient.", impact: 20, msg: "The patient lives! But you've compromised data integrity. +20 Goodwill." },
+                { text: "Follow the protocol.", impact: -30, msg: "Data remains pure, but the patient suffers. -30 Goodwill." }
+            ]
+        },
+        'Corporation': {
+            bonus: 10,
+            bonusMsg: "CORPORATE SHILL! Starting with +10 Goodwill.",
+            text: "You discover your company's new 'Privacy Pro' software is actually scraping user clipboards for marketing data. Reporting it might cost you your yearly bonus.",
+            choices: [
+                { text: "Leak it to a tech blog.", impact: 40, msg: "You're fired, but a hero to millions. +40 Goodwill." },
+                { text: "Stay quiet and take the bonus.", impact: -50, msg: "You've got a new car, but lost your soul. -50 Goodwill." }
+            ]
+        },
+        'Government': {
+            bonus: 60,
+            bonusMsg: "CIVIC DUTY! Starting with +60 Goodwill.",
+            text: "The city wants to implement facial recognition in low-income neighborhoods to 'reduce crime,' but the algorithm has a 15% false-positive rate for minorities.",
+            choices: [
+                { text: "Refuse to deploy the update.", impact: 50, msg: "You protected civil liberties! +50 Goodwill." },
+                { text: "Deploy as requested by the Mayor.", impact: -60, msg: "Innocent people are being detained. -60 Goodwill." }
+            ]
+        },
+        'Startup': {
+            bonus: 25,
+            bonusMsg: "AGILE START! Starting with +25 Goodwill.",
+            text: "Your 'Uber for Dog Walking' app is failing. To stay afloat, you can sell your users' location history to a 3rd party data broker without telling them.",
+            choices: [
+                { text: "Sell the data to save the jobs.", impact: -40, msg: "The company lives another day, but privacy is dead. -40 Goodwill." },
+                { text: "Shut down the company honestly.", impact: 30, msg: "Everyone is unemployed, but your integrity is intact. +30 Goodwill." }
+            ]
+        }
+    };
+
+    function updateScore(points) {
+        score += points;
+        scoreEl.innerText = score;
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function startGame(field) {
+        const data = dilemmas[field];
+        score = 0; // Reset for new turn
+        updateScore(data.bonus);
+        
+        document.getElementById('field-title').innerText = field.toUpperCase() + " SECTOR";
+        document.getElementById('reward-announcement').innerText = data.bonusMsg;
+        document.getElementById('dilemma-text').innerText = data.text;
+        
+        const container = document.getElementById('choices-container');
+        container.innerHTML = '';
+        
+        data.choices.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerText = c.text;
+            btn.onclick = () => showResult(c);
+            container.appendChild(btn);
+        });
+
+        showScreen('dilemma-screen');
+    }
+
+    function showResult(choice) {
+        updateScore(choice.impact);
+        document.getElementById('outcome-text').innerText = choice.msg;
+        document.getElementById('feedback').innerText = choice.impact > 0 ? "STAY GROOVY!" : "THAT'S BOGUS, MAN!";
+        showScreen('result-screen');
+    }
+
+    function resetGame() {
+        showScreen('setup-screen');
+    }
+</script>
+
+</body>
+</html>
